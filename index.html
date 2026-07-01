@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Claire Wang</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080810;
+      --surface: rgba(12,10,20,0.28);
+      --border: rgba(255,180,80,0.12);
+      --text: #ede8e0;
+      --muted: #9a9088;
+      --accent: #ffb347;
+      --flame1: #ff6a00;
+      --flame2: #ffb347;
+      --flame3: #fff0a0;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Georgia', serif;
+      overflow: hidden;
+      /* flame cursor */
+      cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='28' height='36' viewBox='0 0 28 36'%3E%3Cdefs%3E%3CradialGradient id='fg' cx='50%25' cy='80%25' r='60%25'%3E%3Cstop offset='0%25' stop-color='%23fff8c0'/%3E%3Cstop offset='35%25' stop-color='%23ffb347'/%3E%3Cstop offset='75%25' stop-color='%23ff6a00'/%3E%3Cstop offset='100%25' stop-color='%23cc2200' stop-opacity='0'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cellipse cx='14' cy='28' rx='7' ry='8' fill='url(%23fg)' opacity='.9'/%3E%3Cpath d='M14 2 C10 8,5 12,7 19 C8 23,11 26,14 28 C17 26,20 23,21 19 C23 12,18 8,14 2Z' fill='url(%23fg)'/%3E%3Cpath d='M14 8 C12 12,10 15,12 19 C13 22,14 24,14 28 C14 24,16 22,16 19 C18 15,16 12,14 8Z' fill='%23fff8c0' opacity='.7'/%3E%3C/svg%3E") 14 34, auto;
+    }
+
+    canvas { position: fixed; inset: 0; pointer-events: none; }
+    #bg-canvas    { z-index: 1; }
+    #ember-canvas { z-index: 3; }
+
+    /* ── Card ── */
+    #card {
+      position: fixed; inset: 0; z-index: 10;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .inner {
+      text-align: center;
+      padding: 2.4rem 2.8rem 2rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 1.2rem;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      box-shadow:
+        0 0 60px rgba(255,106,0,0.1),
+        0 0 120px rgba(255,106,0,0.05),
+        inset 0 1px 0 rgba(255,200,100,0.08);
+      max-width: 400px;
+      width: 90vw;
+    }
+
+    h1 {
+      font-size: clamp(1.7rem,5vw,2.3rem);
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      color: #fff;
+      text-shadow: 0 0 30px rgba(255,160,60,0.6);
+      margin-bottom: 0.25rem;
+    }
+
+    .tagline {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── Links ── */
+    .links {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      margin-bottom: 1.2rem;
+    }
+
+    .links a {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.9rem;
+      border-radius: 0.5rem;
+      text-decoration: none;
+      color: var(--text);
+      font-size: 0.86rem;
+      letter-spacing: 0.04em;
+      transition: background 0.2s, color 0.2s;
+      border: 1px solid transparent;
+    }
+
+    .links a:hover {
+      background: rgba(255,140,30,0.1);
+      border-color: rgba(255,140,30,0.25);
+      color: var(--accent);
+    }
+
+    .links a svg { width: 14px; height: 14px; flex-shrink: 0; opacity: 0.7; }
+
+    .divider {
+      width: 36px; height: 1px;
+      background: rgba(255,150,50,0.2);
+      margin: 1rem auto 0.9rem;
+    }
+
+    /* ── Projects ── */
+    .projects-label {
+      font-size: 0.68rem;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.7rem;
+    }
+
+    .projects { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
+
+    .projects li a {
+      display: inline-block;
+      position: relative;
+      text-decoration: none;
+      color: #d4c9b8;
+      font-size: 0.84rem;
+      letter-spacing: 0.03em;
+      padding: 0.1rem 0;
+      transition: color 0.25s;
+    }
+
+    /* firelight underline */
+    .projects li a::after {
+      content: '';
+      position: absolute;
+      left: 0; bottom: -1px;
+      width: 100%; height: 2px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, var(--flame1), var(--flame2), var(--flame3), var(--flame2), var(--flame1));
+      background-size: 200% 100%;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+      animation: none;
+    }
+
+    .projects li a:hover {
+      color: #fff8e8;
+      text-shadow: 0 0 12px rgba(255,160,60,0.7);
+    }
+
+    .projects li a:hover::after {
+      transform: scaleX(1);
+      animation: flameSlide 1.2s linear infinite;
+    }
+
+    @keyframes flameSlide {
+      0%   { background-position: 0% 50%; filter: brightness(1); }
+      50%  { background-position: 100% 50%; filter: brightness(1.4); }
+      100% { background-position: 0% 50%; filter: brightness(1); }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<canvas id="ember-canvas"></canvas>
+
+<div id="card">
+  <div class="inner">
+    <h1>Claire Wang</h1>
+    <p class="tagline">Software Engineer</p>
+
+    <div class="links">
+      <a href="mailto:tatsmyname16@gmail.com">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>
+        tatsmyname16@gmail.com
+      </a>
+      <a href="https://linkedin.com/in/clairewang" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+        LinkedIn
+      </a>
+      <a href="https://github.com/clairewang" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.484 2 12.021c0 4.428 2.865 8.185 6.839 9.504.5.092.682-.217.682-.482 0-.237-.009-.868-.014-1.703-2.782.605-3.369-1.342-3.369-1.342-.454-1.155-1.11-1.463-1.11-1.463-.908-.62.069-.608.069-.608 1.003.07 1.531 1.031 1.531 1.031.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.339-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.338c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482C19.138 20.2 22 16.447 22 12.021 22 6.484 17.522 2 12 2z"/></svg>
+        GitHub
+      </a>
+      <a href="/blog" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Blog
+      </a>
+      <a href="/resume.pdf" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        Resume
+      </a>
+    </div>
+
+    <div class="divider"></div>
+    <p class="projects-label">Projects</p>
+
+    <ul class="projects">
+      <li><a href="https://github.com/clairewang/alpha"   target="_blank" rel="noopener">Project Alpha</a></li>
+      <li><a href="https://github.com/clairewang/beta"    target="_blank" rel="noopener">Project Beta</a></li>
+      <li><a href="https://github.com/clairewang/gamma"   target="_blank" rel="noopener">Project Gamma</a></li>
+      <li><a href="https://github.com/clairewang/delta"   target="_blank" rel="noopener">Project Delta</a></li>
+      <li><a href="https://github.com/clairewang/epsilon" target="_blank" rel="noopener">Project Epsilon</a></li>
+    </ul>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// BG CANVAS — fairy lights + fireplace + warm floor glow
+// ═══════════════════════════════════════════════════════════
+(function () {
+  const canvas = document.getElementById('bg-canvas');
+  const ctx    = canvas.getContext('2d');
+  let W, H;
+
+  // ── Fairy light strings ──────────────────────────────────
+  const ROWS = [
+    { yF: 0.07, amp: 16, freq: 0.011, n: 22 },
+    { yF: 0.13, amp: 20, freq: 0.008, n: 20 },
+    { yF: 0.20, amp: 14, freq: 0.013, n: 24 },
+  ];
+  let lights = [];
+
+  function buildLights() {
+    lights = [];
+    ROWS.forEach(row => {
+      for (let i = 0; i < row.n; i++) {
+        const t = i / (row.n - 1);
+        const x = W * 0.02 + t * W * 0.96;
+        const y = H * row.yF + Math.sin(x * row.freq) * row.amp;
+        lights.push({
+          x, y,
+          r:     1.1 + Math.random() * 1.1,
+          phase: Math.random() * Math.PI * 2,
+          speed: 0.006 + Math.random() * 0.009,
+          warm:  Math.random() < 0.55,
+        });
+      }
+    });
+  }
+
+  // ── Fireplace flame particles ───────────────────────────
+  const FP_COUNT = 120;
+  let fp = [];
+  const FX_FRAC = 0.5; // center x fraction
+  const FW = 0.18;     // half-width fraction of W
+
+  function mkFlameParticle() {
+    const angle = -Math.PI/2 + (Math.random()-0.5)*0.9;
+    const speed = 0.6 + Math.random() * 1.4;
+    return {
+      x:    W * FX_FRAC + (Math.random()-0.5) * W * FW * 1.2,
+      y:    H + 10,
+      vx:   Math.cos(angle) * speed * 0.4,
+      vy:   -Math.abs(Math.sin(angle) * speed),
+      life: 0,
+      maxL: 0.55 + Math.random() * 0.5,
+      size: 6 + Math.random() * 18,
+    };
+  }
+
+  function initFP() {
+    fp = Array.from({ length: FP_COUNT }, () => {
+      const p = mkFlameParticle();
+      p.life = Math.random() * p.maxL;
+      return p;
+    });
+  }
+
+  // ── Main draw ────────────────────────────────────────────
+  let t = 0;
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+    t += 0.016;
+
+    // --- floor warm glow from fireplace ---
+    const fpx = W * FX_FRAC;
+    const fpy = H;
+    const gr  = ctx.createRadialGradient(fpx, fpy, 0, fpx, fpy, H * 0.55);
+    const flicker = 0.85 + 0.15 * Math.sin(t * 7.3 + 0.4) * Math.sin(t * 11.1);
+    gr.addColorStop(0,   `rgba(255,100,20,${0.18 * flicker})`);
+    gr.addColorStop(0.3, `rgba(255,60,0,${0.08 * flicker})`);
+    gr.addColorStop(1,    'rgba(0,0,0,0)');
+    ctx.fillStyle = gr;
+    ctx.fillRect(0, 0, W, H);
+
+    // --- fairy light strings ---
+    ROWS.forEach(row => {
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+      ctx.lineWidth = 0.7;
+      for (let x = 0; x <= W; x += 5) {
+        const y = H * row.yF + Math.sin(x * row.freq) * row.amp;
+        x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    });
+
+    lights.forEach(l => {
+      const a = 0.5 + 0.5 * Math.sin(l.phase + t * l.speed * 60);
+      const hue = l.warm ? (28 + Math.random()*10) : (260 + Math.random()*20);
+      const glow = l.r * 5;
+      const g = ctx.createRadialGradient(l.x,l.y,0, l.x,l.y,glow*2);
+      g.addColorStop(0, `hsla(${hue},90%,82%,${a*0.7})`);
+      g.addColorStop(1, 'transparent');
+      ctx.beginPath(); ctx.arc(l.x,l.y,glow*2,0,Math.PI*2);
+      ctx.fillStyle = g; ctx.fill();
+      ctx.beginPath(); ctx.arc(l.x,l.y,l.r,0,Math.PI*2);
+      ctx.fillStyle = `hsla(${hue},95%,92%,${a})`; ctx.fill();
+    });
+
+    // --- fireplace structure ---
+    drawFireplace(fpx, H, flicker);
+
+    // --- flame particles ---
+    fp.forEach(p => {
+      p.life += 0.016;
+      if (p.life >= p.maxL) { Object.assign(p, mkFlameParticle()); p.life = 0; }
+      p.x += p.vx + Math.sin(p.life * 8 + p.y) * 0.3;
+      p.y += p.vy;
+      p.vy -= 0.015;
+      const progress = p.life / p.maxL;
+      const alpha    = Math.sin(progress * Math.PI) * 0.85;
+      const size     = p.size * (1 - progress * 0.5);
+      // colour shifts: red → orange → yellow → white tip
+      let r=255, g2=0, b=0;
+      if (progress < 0.3)      { g2 = Math.round((progress/0.3)*130); }
+      else if (progress < 0.7) { g2 = Math.round(130 + ((progress-0.3)/0.4)*110); b = Math.round(((progress-0.3)/0.4)*60); }
+      else                     { g2 = 240; b = Math.round(60+((progress-0.7)/0.3)*190); }
+      const fg = ctx.createRadialGradient(p.x,p.y,0, p.x,p.y,size);
+      fg.addColorStop(0,   `rgba(255,255,${Math.min(b+120,255)},${alpha})`);
+      fg.addColorStop(0.4, `rgba(${r},${g2},${b},${alpha*0.8})`);
+      fg.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.arc(p.x,p.y,size,0,Math.PI*2);
+      ctx.fillStyle = fg; ctx.fill();
+    });
+
+    requestAnimationFrame(frame);
+  }
+
+  function drawFireplace(cx, by, flicker) {
+    const fw  = W * 0.22;   // total width
+    const fh  = H * 0.28;   // height
+    const x0  = cx - fw/2;
+    const y0  = by - fh;
+
+    // mantel shelf
+    ctx.fillStyle = '#1a1510';
+    ctx.fillRect(x0 - fw*0.08, y0 - 10, fw*1.16, 14);
+    // mantel border glow
+    const mg = ctx.createLinearGradient(x0, y0-10, cx, y0-10);
+    mg.addColorStop(0,'transparent');
+    mg.addColorStop(0.5,`rgba(255,140,40,${0.25*flicker})`);
+    mg.addColorStop(1,'transparent');
+    ctx.fillStyle = mg;
+    ctx.fillRect(x0 - fw*0.08, y0-10, fw*1.16, 14);
+
+    // side pillars
+    const pw = fw * 0.13;
+    ctx.fillStyle = '#141018';
+    ctx.fillRect(x0, y0, pw, fh);
+    ctx.fillRect(cx + fw/2 - pw, y0, pw, fh);
+
+    // inner arch opening (dark)
+    const ax  = x0 + pw;
+    const aw  = fw - pw*2;
+    const ah  = fh * 0.92;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(ax, by);
+    ctx.lineTo(ax, y0 + fh - ah + aw/2);
+    ctx.arc(ax + aw/2, y0 + fh - ah + aw/2, aw/2, Math.PI, 0);
+    ctx.lineTo(ax + aw, by);
+    ctx.closePath();
+    ctx.fillStyle = '#050408';
+    ctx.fill();
+
+    // inner glow
+    const ig = ctx.createRadialGradient(cx, by, 0, cx, by, fw*0.6);
+    ig.addColorStop(0,   `rgba(255,120,20,${0.55*flicker})`);
+    ig.addColorStop(0.4, `rgba(200,60,5,${0.3*flicker})`);
+    ig.addColorStop(1,    'transparent');
+    ctx.fillStyle = ig;
+    ctx.fill();
+    ctx.restore();
+
+    // logs
+    const ly = by - 8;
+    [[cx-fw*0.12, ly-4, fw*0.25, 8],[cx-fw*0.06, ly-12, fw*0.22, 8],[cx+fw*0.03, ly-2, fw*0.22, 8]].forEach(([lx,ltop,lw,lh])=>{
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(lx+lw/2, ltop+lh/2, lw/2, lh/2, 0, 0, Math.PI*2);
+      ctx.fillStyle = '#2a1a08'; ctx.fill();
+      ctx.strokeStyle='rgba(255,100,0,0.3)'; ctx.lineWidth=1; ctx.stroke();
+      ctx.restore();
+    });
+
+    // hearth floor
+    ctx.save();
+    const hg = ctx.createLinearGradient(ax, by-6, ax, by+6);
+    hg.addColorStop(0,'#1a1208'); hg.addColorStop(1,'#0d0b08');
+    ctx.fillStyle = hg;
+    ctx.fillRect(ax, by-4, aw, 12);
+    ctx.restore();
+  }
+
+  function resize() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; buildLights(); initFP(); }
+  window.addEventListener('resize', resize);
+  resize();
+  frame();
+})();
+
+// ═══════════════════════════════════════════════════════════
+// EMBER CANVAS — foreground floating embers
+// ═══════════════════════════════════════════════════════════
+(function () {
+  const canvas = document.getElementById('ember-canvas');
+  const ctx    = canvas.getContext('2d');
+  let W, H, embers;
+
+  function mkEmber() {
+    const side = Math.random() < 0.5 ? -1 : 1;
+    return {
+      x:    W * 0.5 + (Math.random()-0.5) * W * 0.25,
+      y:    H + 5,
+      vx:   (Math.random()-0.5) * 0.6 + side * 0.2,
+      vy:   -(0.8 + Math.random() * 1.4),
+      r:    1 + Math.random() * 2.2,
+      life: 0,
+      maxL: 2.5 + Math.random() * 3,
+      hue:  15 + Math.random() * 35,
+    };
+  }
+
+  function init() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    embers = Array.from({ length: 40 }, () => {
+      const e = mkEmber(); e.life = Math.random() * e.maxL; return e;
+    });
+  }
+
+  let t = 0;
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+    t += 0.016;
+    embers.forEach(e => {
+      e.life += 0.016;
+      if (e.life >= e.maxL) Object.assign(e, mkEmber());
+      e.x  += e.vx + Math.sin(e.life * 3.1 + e.y * 0.01) * 0.4;
+      e.y  += e.vy;
+      e.vy -= 0.004;
+      const progress = e.life / e.maxL;
+      const alpha    = Math.sin(progress * Math.PI) * 0.9;
+      // flicker
+      const flkr = 0.7 + 0.3 * Math.sin(t * 20 + e.x);
+      const a    = alpha * flkr;
+      if (a < 0.05) return;
+
+      const g = ctx.createRadialGradient(e.x,e.y,0, e.x,e.y,e.r*4);
+      g.addColorStop(0,   `hsla(${e.hue},100%,90%,${a})`);
+      g.addColorStop(0.5, `hsla(${e.hue},100%,60%,${a*0.5})`);
+      g.addColorStop(1,    'transparent');
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.r*4, 0, Math.PI*2);
+      ctx.fillStyle = g; ctx.fill();
+
+      ctx.beginPath(); ctx.arc(e.x, e.y, e.r, 0, Math.PI*2);
+      ctx.fillStyle = `hsla(${e.hue+20},100%,95%,${a})`; ctx.fill();
+    });
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', init);
+  init();
+  frame();
+})();
+</script>
+</body>
+</html>
